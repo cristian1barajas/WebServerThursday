@@ -8,8 +8,28 @@ const char* password = "56781234";
 
 AsyncWebServer server(80);
 
+const int ledPin = 2;
+String ledState;
+
+// Replaces placeholder with LED state value
+String processor(const String& var){
+  Serial.println(var);
+  if(var == "STATE"){
+    if(digitalRead(ledPin)){
+      ledState = "ON";
+    }
+    else{
+      ledState = "OFF";
+    }
+    Serial.print(ledState);
+    return ledState;
+  }
+  return String();
+}
+
 void setup() {
   Serial.begin(9600);
+  pinMode(ledPin, OUTPUT);
 
   // Initialize SPIFFS
   if(!SPIFFS.begin(true)){
@@ -40,6 +60,18 @@ void setup() {
   // Route to load main.js file
   server.on("/main.js", HTTP_GET, [](AsyncWebServerRequest *request){
     request->send(SPIFFS, "/main.js");
+  });
+
+  // Route to set GPIO to HIGH
+  server.on("/on", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(ledPin, HIGH);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
+  });
+  
+  // Route to set GPIO to LOW
+  server.on("/off", HTTP_GET, [](AsyncWebServerRequest *request){
+    digitalWrite(ledPin, LOW);    
+    request->send(SPIFFS, "/index.html", String(), false, processor);
   });
 
   // Start server
